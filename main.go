@@ -20,3 +20,4 @@ func nameHandler(w http.ResponseWriter, r *http.Request) {
 	name := args[2]
 	fmt.Fprintf(w, "Hi %s", name)
 }
+

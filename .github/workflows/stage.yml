@@ -11,24 +11,24 @@ env:
   GOCYCLO_SCORE_THRESHOLD: 90
 
 jobs:
-  Jira:
-    runs-on: ubuntu-latest
-    steps:
-    - uses: cleartax/jira-lint@master
-      name: jira-lint
-      with:
-        github-token: ${{ secrets.GITHUB_TOKEN }}
-        jira-token: ${{ secrets.JIRA_TOKEN }}
-        jira-base-url: https://lambdatest.atlassian.net
-        validate_issue_status: true
-        allowed_issue_statuses: 'Work in progress'
+  # Jira:
+  #   runs-on: ubuntu-latest
+  #   steps:
+  #   - uses: cleartax/jira-lint@master
+  #     name: jira-lint
+  #     with:
+  #       github-token: ${{ secrets.GITHUB_TOKEN }}
+  #       jira-token: ${{ secrets.JIRA_TOKEN }}
+  #       jira-base-url: https://lambdatest.atlassian.net
+  #       validate_issue_status: true
+  #       allowed_issue_statuses: 'Work in progress'
   Linting:
     runs-on: ubuntu-latest
     steps:
     - name: Install Go
       uses: actions/setup-go@v2
       with:
-        go-version: 1.15.x
+        go-version: 1.18.x
 
     - name: Checkout code
       uses: actions/checkout@v2
@@ -88,13 +88,18 @@ jobs:
       - name: Install Go
         uses: actions/setup-go@v2
         with:
-          go-version: 1.15.x
+          go-version: 1.18.x
 
       - name: Checkout code
         uses: actions/checkout@v2
 
       - name: Run coverage
-        run: go test -race -coverprofile=coverage.out -covermode=atomic
-
+        run: go test -race -coverprofile=coverage.txt -covermode=atomic
+        
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v3
+        with:
+          token: ${{ secrets.CODECOVE_TOKEN }}
+          file: ./coverage.txt
+          flags: unittests
+          name: codecov-umbrella
