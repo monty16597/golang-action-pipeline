@@ -11,17 +11,17 @@ env:
   GOCYCLO_SCORE_THRESHOLD: 90
 
 jobs:
-  Jira:
-    runs-on: ubuntu-latest
-    steps:
-    - uses: cleartax/jira-lint@master
-      name: jira-lint
-      with:
-        github-token: ${{ secrets.GITHUB_TOKEN }}
-        jira-token: ${{ secrets.JIRA_TOKEN }}
-        jira-base-url: https://lambdatest.atlassian.net
-        validate_issue_status: true
-        allowed_issue_statuses: 'Work in progress'
+  # Jira:
+  #   runs-on: ubuntu-latest
+  #   steps:
+  #   - uses: cleartax/jira-lint@master
+  #     name: jira-lint
+  #     with:
+  #       github-token: ${{ secrets.GITHUB_TOKEN }}
+  #       jira-token: ${{ secrets.JIRA_TOKEN }}
+  #       jira-base-url: https://lambdatest.atlassian.net
+  #       validate_issue_status: true
+  #       allowed_issue_statuses: 'Work in progress'
   Linting:
     runs-on: ubuntu-latest
     steps:
@@ -98,3 +98,8 @@ jobs:
 
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v3
+        with:
+          token: "{{ secrets.CODECOVE_TOKEN }}"
+          file: ./coverage.txt
+          flags: unittests
+          name: codecov-umbrella

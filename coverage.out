@@ -1,0 +1,4 @@
+mode: atomic
+example.com/m/main.go:9.13,12.16 3 0
+example.com/m/main.go:12.16,14.3 1 0
+example.com/m/main.go:18.58,22.2 3 1
