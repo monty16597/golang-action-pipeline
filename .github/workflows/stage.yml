@@ -1,0 +1,100 @@
+name: Invigilator CI
+
+on:
+  pull_request:
+    branches:
+      - stage
+env:
+  GOFMT_SCORE_THRESHOLD: 100
+  ISSUE_THRESHOLD: 20
+  GOVET_SCORE_THRESHOLD: 100
+  GOCYCLO_SCORE_THRESHOLD: 90
+
+jobs:
+  Jira:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: cleartax/jira-lint@master
+      name: jira-lint
+      with:
+        github-token: ${{ secrets.GITHUB_TOKEN }}
+        jira-token: ${{ secrets.JIRA_TOKEN }}
+        jira-base-url: https://lambdatest.atlassian.net
+        validate_issue_status: true
+        allowed_issue_statuses: 'Work in progress'
+  Linting:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Install Go
+      uses: actions/setup-go@v2
+      with:
+        go-version: 1.15.x
+
+    - name: Checkout code
+      uses: actions/checkout@v2
+
+    - name: Download
+      run: |
+        go mod download
+        go mod tidy
+
+    - name: Golang Lint
+      uses: golangci/golangci-lint-action@v2.5.2
+
+    - name: Run Go Report Card
+      run: |
+        git clone https://github.com/gojp/goreportcard.git
+        cd goreportcard
+        make install
+        go install ./cmd/goreportcard-cli
+        cd ..
+        rm -rf goreportcard
+        goreportcard-cli | tee reportcard.txt
+        files=$(cat reportcard.txt| grep 'Files ' | awk  '{print $3}' | tr -d \%)
+        issues=$(cat reportcard.txt| grep 'Issues ' | awk  '{print $3}' | tr -d \%)
+        gofmt_score=$(cat reportcard.txt| grep 'gofmt ' | awk  '{print $3}' | tr -d \%)
+        go_vet_score=$(cat reportcard.txt| grep 'go_vet ' | awk  '{print $3}' | tr -d \%)
+        gocyclo_score=$(cat reportcard.txt| grep 'gocyclo ' | awk  '{print $3}' | tr -d \%)
+        rm reportcard.txt
+        failed_checks=0
+        failure_reason=""
+        if [[ $issues -gt $ISSUE_THRESHOLD ]]; then
+          failure_reason="${failure_reason}\nIssues: $issues. Threshold was:  $ISSUE_THRESHOLD ."
+          ((failed_checks+=1))
+        fi
+        if [[ $gofmt_score -lt $GOFMT_SCORE_THRESHOLD ]]; then
+          failure_reason="${failure_reason}\ngo-fmt score: $gofmt_score. Threshold was: $GOFMT_SCORE_THRESHOLD ."
+          ((failed_checks+=1))
+        fi
+        if [[ $go_vet_score -lt $GOVET_SCORE_THRESHOLD ]]; then
+          failure_reason="${failure_reason}\ngo-vet score: $go_vet_score. Threshold was: $GOVET_SCORE_THRESHOLD ."
+          ((failed_checks+=1))
+        fi
+        if [[ $gocyclo_score -lt ${{ env.GOCYCLO_SCORE_THRESHOLD }} ]]; then
+          failure_reason="${failure_reason}\ngo-cyclo score: $gocyclo_score. Threshold was: $GOCYCLO_SCORE_THRESHOLD."
+          ((failed_checks+=1))
+        fi
+        if [[ $failed_checks -gt 0 ]]; then
+          goreportcard-cli -v
+          printf "\n\n\n${failure_reason}\nFrom the above output, filter out issues in your touched files and fix them."
+          exit 1
+        else
+          exit 0
+        fi
+
+  test-case:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Install Go
+        uses: actions/setup-go@v2
+        with:
+          go-version: 1.15.x
+
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Run coverage
+        run: go test -race -coverprofile=coverage.out -covermode=atomic
+
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v3
